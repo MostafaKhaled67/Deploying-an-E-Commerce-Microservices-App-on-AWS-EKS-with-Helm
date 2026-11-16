@@ -2,7 +2,7 @@
 
 Hands-on project: deploy **RobotShop**, a microservices e-commerce application, on **Amazon EKS** and expose it to the internet through an **Application Load Balancer** created from a Kubernetes Ingress.
 
-> The application and Helm chart come from the original project: [uniquesreedhar/RobotShop-Project](https://github.com/uniquesreedhar/RobotShop-Project). This repository documents how I deployed it on AWS, the problems I ran into, and how I solved them.
+
 
 ---
 
@@ -12,31 +12,12 @@ Hands-on project: deploy **RobotShop**, a microservices e-commerce application, 
 - [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
 - [Deployment Steps](#deployment-steps)
-- [Problems I Faced and How I Solved Them](#problems-i-faced-and-how-i-solved-them)
-- [Cleanup](#cleanup)
-- [What I Learned](#what-i-learned)
-- [Credits](#credits)
 
----
+   <img width="736" height="291" alt="image" src="https://github.com/user-attachments/assets/d69034a8-c1f6-4878-96e6-dff59646ab34" />
 
-## Architecture
 
-```
-User (Browser)
-      |
-      v
-Application Load Balancer (internet-facing, public subnets)
-      |
-      v
-Kubernetes Ingress  ->  Service "web" (port 8080)
-      |
-      v
-+----------------------- EKS Cluster (namespace: robot-shop) -----------------------+
-|  Frontend : web                                                                   |
-|  Backend  : catalogue, cart, user, shipping, payment, ratings, dispatch           |
-|  Data     : mongodb, mysql, redis, rabbitmq                                       |
-+-----------------------------------------------------------------------------------+
-```
+
+
 
 The app runs as **12 pods** in three tiers: frontend, backend services, and data services.
 
@@ -67,12 +48,12 @@ The app runs as **12 pods** in three tiers: frontend, backend services, and data
 Install the missing tools in CloudShell:
 
 ```bash
-# eksctl
+
 mkdir -p ~/bin
 curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz -C ~/bin
 export PATH=$PATH:~/bin
 
-# helm
+
 curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
@@ -248,31 +229,4 @@ kubectl rollout restart deployment aws-load-balancer-controller -n kube-system
 kubectl rollout status deployment aws-load-balancer-controller -n kube-system
 ```
 
-If AWS reports the policy already has 5 versions, delete an old non-default one with `aws iam delete-policy-version`.
 
-## Cleanup
-
-The EKS control plane, the nodes, the NAT Gateway and the ALB all bill by the hour. Delete the Ingress **first** so the ALB is removed, then the cluster:
-
-```bash
-kubectl delete -f ingress.yaml
-helm uninstall robot-shop -n robot-shop
-# wait a couple of minutes until the ALB disappears from the EC2 console
-eksctl delete cluster --name ecommerce-cluster --region us-east-1
-```
-
-Then check the console for anything left behind: Load Balancers, EBS Volumes, NAT Gateways, Elastic IPs.
-
-## What I Learned
-
-- Read the scheduler events before changing anything. They state exactly why a pod is `Pending`.
-- Match the IAM policy version to the controller version. An old policy with a new controller fails quietly, and the 404 symptom points in the wrong direction.
-- Controller logs are more reliable than Ingress events, which keep showing old errors after the cause is fixed.
-- Resource sizing matters. A full microservices app plus cluster add-ons does not fit comfortably on two `t3.small` nodes.
-- IRSA (OIDC provider, IAM role, service account) is the part where most cloud integration problems start.
-- Cleanup order matters: Ingress first, then the cluster.
-
-## Credits
-
-- Original project and Helm chart: [uniquesreedhar/RobotShop-Project](https://github.com/uniquesreedhar/RobotShop-Project)
-- RobotShop sample application by Instana
