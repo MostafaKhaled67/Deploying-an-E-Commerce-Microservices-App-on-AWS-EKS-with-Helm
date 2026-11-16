@@ -156,7 +156,7 @@ eksctl get addon --name aws-ebs-csi-driver --cluster ecommerce-cluster
 ```
 
 ### Step 6: Install the RobotShop Helm chart
-
+GitHub URL : https://github.com/uniquesreedhar/RobotShop-Project.git
 ```bash
 git clone https://github.com/uniquesreedhar/RobotShop-Project.git
 cd RobotShop-Project/EKS/helm
